@@ -5,7 +5,7 @@ Shared Supabase auth package consumed by all Tufan family Next.js apps via `gith
 ## Architecture
 
 - **Single Supabase project** handles auth for all apps (admin, vault, meal planner, etc.)
-- **Google Workspace SSO** restricted to `tufan.co.uk` domain via `hd` query param
+- **Google OAuth SSO** — any Google account can attempt sign-in; access is gated by the `approved_users` table, not by domain
 - **`approved_users` table** in Supabase gates access — only listed emails can log in
 - Compiled with **tsup** to ESM — consumers get pre-built JS from `dist/`
 
