@@ -53,10 +53,7 @@ function LoginScreen({
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-        queryParams: {
-          hd: "tufan.co.uk"
-        }
+        redirectTo: `${window.location.origin}/auth/callback`
       }
     });
   }

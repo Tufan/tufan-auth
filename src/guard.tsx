@@ -68,9 +68,6 @@ function LoginScreen({
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
-        queryParams: {
-          hd: "tufan.co.uk",
-        },
       },
     });
   }
