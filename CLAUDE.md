@@ -47,3 +47,9 @@ Each app needs:
 2. Two env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 3. An `/auth/callback` route using `createCallbackHandler()`
 4. Middleware or `<AuthGuard>` (or both) for protection
+
+## Optional: `COOKIE_DOMAIN` for cross-subdomain SSO
+
+When set (e.g. `.tufan.co.uk`), `server.ts` and `middleware.ts` add `domain: <value>` to every Supabase auth cookie they write, so sibling subdomains (admin, vault, meals, …) share the same signed-in session. Leave it unset for localhost dev — the default per-host scope is fine.
+
+Caveat: switching this on (or rotating it) doesn't migrate existing sessions; they keep working on the subdomain that wrote them but won't be visible to siblings until the next sign-in. Apps that need cross-origin cookies on their own (not via tufan-auth — e.g. admin's own `src/lib/supabase/server.ts` + `src/proxy.ts`) must thread `COOKIE_DOMAIN` through the same way.
