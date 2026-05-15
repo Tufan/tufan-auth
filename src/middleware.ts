@@ -23,6 +23,11 @@ export function createAuthMiddleware(
   return async function middleware(request: NextRequest) {
     let supabaseResponse = NextResponse.next({ request });
 
+    // When COOKIE_DOMAIN is set (e.g. ".tufan.co.uk" in prod), Supabase auth
+    // cookies are written on the parent domain so sibling subdomains share
+    // the same session.
+    const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
+
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -32,12 +37,16 @@ export function createAuthMiddleware(
             return request.cookies.getAll();
           },
           setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
+            cookiesToSet.forEach(({ name, value }) =>
               request.cookies.set(name, value)
             );
             supabaseResponse = NextResponse.next({ request });
             cookiesToSet.forEach(({ name, value, options }) =>
-              supabaseResponse.cookies.set(name, value, options)
+              supabaseResponse.cookies.set(
+                name,
+                value,
+                cookieDomain ? { ...options, domain: cookieDomain } : options
+              )
             );
           },
         },
