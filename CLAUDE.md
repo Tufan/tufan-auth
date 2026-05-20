@@ -48,8 +48,22 @@ Each app needs:
 3. An `/auth/callback` route using `createCallbackHandler()`
 4. Middleware or `<AuthGuard>` (or both) for protection
 
-## Optional: `COOKIE_DOMAIN` for cross-subdomain SSO
+## `COOKIE_DOMAIN` for cross-subdomain SSO
 
-When set (e.g. `.tufan.co.uk`), `server.ts` and `middleware.ts` add `domain: <value>` to every Supabase auth cookie they write, so sibling subdomains (admin, vault, meals, …) share the same signed-in session. Leave it unset for localhost dev — the default per-host scope is fine.
+When set (e.g. `.tufan.co.uk`), Supabase auth cookies are written on the parent domain so sibling subdomains share the same signed-in session.
 
-Caveat: switching this on (or rotating it) doesn't migrate existing sessions; they keep working on the subdomain that wrote them but won't be visible to siblings until the next sign-in. Apps that need cross-origin cookies on their own (not via tufan-auth — e.g. admin's own `src/lib/supabase/server.ts` + `src/proxy.ts`) must thread `COOKIE_DOMAIN` through the same way.
+The override is plumbed through **all four** cookie-writing paths — if any one misses it, you'll end up with same-named cookies on two different scopes coexisting in the browser, and sign-out clears the wrong half. Symptoms: signing into vault doesn't sign you into admin (or vice versa), or `/login` ↔ `/` redirect loops on siblings.
+
+Paths covered:
+
+1. `src/middleware.ts` — token refresh on every request. Reads `COOKIE_DOMAIN`, threads `domain` onto every `supabaseResponse.cookies.set` call.
+2. `src/server.ts` — `createClient()` for page handlers / API routes. Same thing on `cookieStore.set`.
+3. `src/callback.ts` — `createCallbackHandler()` for the OAuth callback. Same thing on the `setAll` inside `exchangeCodeForSession`. Without this, fresh sign-ins still produce per-host cookies even though refresh writes go to the parent.
+4. `src/client.ts` — `createClient()` for the browser. Auto-derives `cookieOptions.domain` from `window.location.hostname` (parent domain) so `signOut()` clears cookies at the SAME scope they were written. No env var needed on the browser side — derivation handles it. Skipped for localhost / IPs / single-label hosts.
+
+Server-side (paths 1–3): leave `COOKIE_DOMAIN` unset locally so localhost dev keeps default per-host cookies. In prod, set it to `.tufan.co.uk` on every Vercel project.
+
+Caveats:
+- Switching `COOKIE_DOMAIN` on (or rotating it) doesn't migrate existing sessions. They keep working on the subdomain that wrote them but won't be visible to siblings until the next sign-out + sign-in. Existing cookies under both scopes can coexist — clear them explicitly during transitions.
+- Vercel does NOT auto-redeploy on env-var changes. After setting it, push a commit or trigger a redeploy from the dashboard.
+- Consumers that bypass tufan-auth (use their own `createServerClient`/`createBrowserClient` directly — e.g. admin) must apply the same plumbing in their own files.
