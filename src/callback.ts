@@ -35,6 +35,11 @@ export function createCallbackHandler(
     }
 
     const cookieStore = await cookies();
+    // Honor COOKIE_DOMAIN so the session cookie this callback writes is
+    // scoped the same as cookies written by server.ts / middleware.ts —
+    // otherwise a fresh sign-in produces vault.tufan.co.uk cookies while
+    // token refreshes produce .tufan.co.uk ones, and the two conflict.
+    const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -45,7 +50,11 @@ export function createCallbackHandler(
           },
           setAll(cookiesToSet) {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
+              cookieStore.set(
+                name,
+                value,
+                cookieDomain ? { ...options, domain: cookieDomain } : options
+              )
             );
           },
         },
