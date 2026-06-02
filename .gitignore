@@ -1,1 +1,4 @@
 node_modules/
+
+# Claude account-switcher binding (machine-specific)
+.vscode/settings.json
