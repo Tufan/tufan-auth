@@ -21,11 +21,34 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 // src/middleware.ts
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
+
+// src/cookie-domain.ts
+function parentDomainFromHost(host) {
+  if (!host) return void 0;
+  const hostname = host.split(":")[0].trim().toLowerCase();
+  if (!hostname) return void 0;
+  if (hostname === "localhost" || /^[\d.]+$/.test(hostname) || !hostname.includes(".")) {
+    return void 0;
+  }
+  const parts = hostname.split(".");
+  if (parts.length < 3) return void 0;
+  return "." + parts.slice(1).join(".");
+}
+function resolveCookieDomain(host) {
+  const override = process.env.COOKIE_DOMAIN;
+  if (override) return override;
+  return parentDomainFromHost(host);
+}
+
+// src/middleware.ts
 function createAuthMiddleware(options = {}) {
   const loginPath = options.loginPath || "/login";
   return async function middleware2(request) {
+    var _a;
     let supabaseResponse = NextResponse.next({ request });
-    const cookieDomain = process.env.COOKIE_DOMAIN || void 0;
+    const cookieDomain = resolveCookieDomain(
+      (_a = request.headers.get("x-forwarded-host")) != null ? _a : request.headers.get("host")
+    );
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,

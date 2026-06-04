@@ -1,12 +1,17 @@
 import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { resolveCookieDomain } from "./cookie-domain";
 
 export async function createClient() {
   const cookieStore = await cookies();
-  // When COOKIE_DOMAIN is set (e.g. ".tufan.co.uk" in prod), Supabase auth
-  // cookies are written on the parent domain so sibling subdomains
-  // (admin.tufan.co.uk, vault.tufan.co.uk, ...) share the same session.
-  const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
+  // Scope auth cookies to the parent domain (e.g. ".tufan.co.uk") so sibling
+  // subdomains (admin.tufan.co.uk, vault.tufan.co.uk, ...) share the same
+  // session AND so the browser client can clear them at the same scope it
+  // wrote them. COOKIE_DOMAIN overrides; otherwise derive from the request
+  // host (x-forwarded-host on Vercel, falling back to host).
+  const headerStore = await headers();
+  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host");
+  const cookieDomain = resolveCookieDomain(host);
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { resolveCookieDomain } from "./cookie-domain";
 
 /**
  * Creates the auth callback GET handler.
@@ -35,11 +36,14 @@ export function createCallbackHandler(
     }
 
     const cookieStore = await cookies();
-    // Honor COOKIE_DOMAIN so the session cookie this callback writes is
-    // scoped the same as cookies written by server.ts / middleware.ts —
-    // otherwise a fresh sign-in produces vault.tufan.co.uk cookies while
-    // token refreshes produce .tufan.co.uk ones, and the two conflict.
-    const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
+    // Scope the session cookie this callback writes the same as cookies written
+    // by server.ts / middleware.ts / the browser client — otherwise a fresh
+    // sign-in produces host-scoped cookies while token refreshes produce
+    // parent-scoped ones, and the two conflict (redirect loop). COOKIE_DOMAIN
+    // overrides; otherwise derive from the request host.
+    const cookieDomain = resolveCookieDomain(
+      request.headers.get("x-forwarded-host") ?? request.headers.get("host")
+    );
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

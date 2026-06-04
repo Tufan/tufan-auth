@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { resolveCookieDomain } from "./cookie-domain";
 
 /**
  * Creates a Supabase-aware Next.js middleware that refreshes auth tokens
@@ -23,10 +24,13 @@ export function createAuthMiddleware(
   return async function middleware(request: NextRequest) {
     let supabaseResponse = NextResponse.next({ request });
 
-    // When COOKIE_DOMAIN is set (e.g. ".tufan.co.uk" in prod), Supabase auth
-    // cookies are written on the parent domain so sibling subdomains share
-    // the same session.
-    const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
+    // Scope auth cookies to the parent domain so sibling subdomains share the
+    // same session and the browser can clear them at the same scope it wrote
+    // them. COOKIE_DOMAIN overrides; otherwise derive from the request host
+    // (x-forwarded-host on Vercel, falling back to host).
+    const cookieDomain = resolveCookieDomain(
+      request.headers.get("x-forwarded-host") ?? request.headers.get("host")
+    );
 
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

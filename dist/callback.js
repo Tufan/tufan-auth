@@ -22,18 +22,41 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+
+// src/cookie-domain.ts
+function parentDomainFromHost(host) {
+  if (!host) return void 0;
+  const hostname = host.split(":")[0].trim().toLowerCase();
+  if (!hostname) return void 0;
+  if (hostname === "localhost" || /^[\d.]+$/.test(hostname) || !hostname.includes(".")) {
+    return void 0;
+  }
+  const parts = hostname.split(".");
+  if (parts.length < 3) return void 0;
+  return "." + parts.slice(1).join(".");
+}
+function resolveCookieDomain(host) {
+  const override = process.env.COOKIE_DOMAIN;
+  if (override) return override;
+  return parentDomainFromHost(host);
+}
+
+// src/callback.ts
 function createCallbackHandler(options = {}) {
   const redirectTo = options.redirectTo || "/";
   const loginPath = options.loginPath || "/login";
   const checkApproved = options.checkApproved !== false;
   return async function GET(request) {
+    var _a;
     const { searchParams, origin } = new URL(request.url);
     const code = searchParams.get("code");
     if (!code) {
       return NextResponse.redirect(`${origin}${loginPath}?error=no_code`);
     }
     const cookieStore = await cookies();
-    const cookieDomain = process.env.COOKIE_DOMAIN || void 0;
+    const cookieDomain = resolveCookieDomain(
+      (_a = request.headers.get("x-forwarded-host")) != null ? _a : request.headers.get("host")
+    );
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
