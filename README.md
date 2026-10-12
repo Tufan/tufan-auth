@@ -17,7 +17,7 @@ NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 ```
 
-Optional: `COOKIE_DOMAIN` (e.g. `.tufan.co.uk`). You usually **don't need it** — auth cookies are scoped to the parent domain automatically (derived from the request host on every path), so sibling subdomains share one session out of the box. Set `COOKIE_DOMAIN` only to override that derived scope. See `CLAUDE.md` → "Cookie domain / cross-subdomain SSO".
+Optional: `COOKIE_DOMAIN` (e.g. `.tufan.co.uk`). You usually **don't need it** — auth cookies are scoped to the parent domain automatically (derived from the request host on every path), so sibling subdomains share one session out of the box. Set `COOKIE_DOMAIN` only to override that derived scope. See `AGENTS.md` → "Cookie domain / cross-subdomain SSO".
 
 ## Setup in a Next.js app
 
