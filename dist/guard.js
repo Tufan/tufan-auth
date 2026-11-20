@@ -76,7 +76,11 @@ function LoginScreen({
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`
+        redirectTo: `${window.location.origin}/auth/callback`,
+        // Always show Google's account chooser. Without it Google silently
+        // reuses the last account picked, so someone who picks one without
+        // access can never get back to choose another.
+        queryParams: { prompt: "select_account" }
       }
     });
   }
